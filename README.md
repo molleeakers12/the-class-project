@@ -100,3 +100,27 @@ Log in as Regular User
 Creating this was very interesting and it finally came together and that was so fun to see. One way I would test to see if everything was working was obviously when checking the websites. If the website was running then I knew I was making progress. 
 This correlates with the main challenge I had which was sometimes being confused on what I was working for. 
 In both instances, the best solution was to go back to what I do know and make my way from there. 
+
+# 03/29/26 Creating Barebones OPAC and Cataloging Module
+## Intro to Relational Databases
+* Login to to opacuser using **sudo mysql -u root**
+* Create database called DinnerDB **mysql> create database DinnerDB;**
+* Grant privileges to opacuser **grant all privileges on DinnerDB * to 'opacuser'@'localhost';**
+* Exit
+* Log in as opacuser **-u opacuser -p**
+* Check if we can see DinnerDB database **show databases;** and **use DinnerDB;**
+* Create Meals Table create table Meals (
+    meal_id int auto_increment primary key,
+    meal_name varchar(100) not null,
+    cuisine varchar(50),
+    cooking_time int not null default 1 check (cooking_time > 0),
+    vegetarian boolean
+* Create table Ingredients create table Ingredients (
+    ingredient_id int auto_increment primary key,
+    meal_id int not null,
+    ingredient_name varchar(100) not null,
+    quantity varchar(50),
+    foreign key (meal_id) references Meals(meal_id) on delete cascade
+* Insert Data provided
+* Use **SELECT**, **JOIN**, **WHERE**, **ORDER BY** and **GROUP** statement to practice filtering data
+
