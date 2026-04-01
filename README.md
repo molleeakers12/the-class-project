@@ -102,7 +102,19 @@ This correlates with the main challenge I had which was sometimes being confused
 In both instances, the best solution was to go back to what I do know and make my way from there. 
 
 # 03/29/26 Creating Barebones OPAC and Cataloging Module
+* An OPAC (Online Public Access Catalog) is the search system you use in a library to find materials.
+* The OPAC can tell you if an item is available, where it is located, etc.
+* Ultimately, it helps you find, locate, and access library materials.
+
 ## Intro to Relational Databases
+### Relational Database Structure
+* A relational database splits bibliographic records into multiple related tables (ie. authors, subjects, etc.)
+* This keeps things organized and efficient (ie. books can have multiple authors).
+* The OPAC is the interface in which users search for the materials.
+* Relational databases are the storage system behind it. 
+* They combine information from different tables quickly and give results.
+
+### Code Documentation: 
 * Login to to opacuser using **sudo mysql -u root**
 * Create database called DinnerDB **mysql> create database DinnerDB;**
 * Grant privileges to opacuser **grant all privileges on DinnerDB * to 'opacuser'@'localhost';**
@@ -124,3 +136,304 @@ In both instances, the best solution was to go back to what I do know and make m
 * Insert Data provided
 * Use **SELECT**, **JOIN**, **WHERE**, **ORDER BY** and **GROUP** statement to practice filtering data
 
+### OPAC Creation: Code Documentation
+* First update copyright column from previous table creation to use a **DATE** data type
+* Use following code 
+	1. **mysql -u opacuser -p**
+	2. **use opacdb;**
+	3. **alter table books add publication_date date;**
+	4. **update books set publication_date = str_to_date(concat(copyright, '-01-01'), '%Y-%m-%d');**
+	5. **alter table books drop column copyright;**
+	6. **alter table books change publication_date copyright date not null;**
+* First create basic HTML page that contains a form for entering queries.
+* **cd var/www/html/** and then create HTML page using **sudo nano mylibrary.html**
+* Add provided HTML to page:
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>MySQL Server Example</title>
+    </head>
+<body>
+
+    <h1>A Basic OPAC</h1>
+
+    <p>In the form below, <b>optionally</b> enter text in the search field.
+    Your search query will search by author, title, or publisher.
+    Capitalization is usually not necessary on default case-insensitive MySQL collations.
+    It's okay to enter partial information, like part of an author's, title's, or publisher's name.</p>
+
+    <p>You can leave the search field empty and only enter dates.
+    Regardless, both start and end dates are required for all searches.
+    You can use the date fields to limit results, too.
+    I added some extra records, which you can view to know what you can query:</p>
+
+    <p><a href="opac.php">OPAC</a></p>
+
+    <p>This is very much a toy, stripped down
+    <a href="https://en.wikipedia.org/wiki/Online_public_access_catalog">OPAC</a>.
+    The records are basic.
+    Not only do they not conform to <a href="https://www.loc.gov/marc/">MARC</a>,
+    they don't even conform to something as simple as <a href="https://www.dublincore.org/">Dublin Core</a>.</p>
+
+    <p>I also don't provide options to select different fields, like author, title, or publisher fields.
+    Instead the search field below searches key bibliographic fields (author, title, publisher) in our <b>books</b> table.</p>
+
+    <p>The key idea is to get a sense of how an OPAC works, though.</p>
+
+    <h2>My Basic Library OPAC</h2>
+
+    <form method="post" action="search.php">
+        <label for="search">Search Terms (optional):</label>
+        <input type="text" name="search" id="search">
+        
+        <br>
+        
+        <label for="start_date">Start Date:</label>
+        <input type="date" name="start_date" id="start_date" required>
+        
+        <br>
+        
+        <label for="end_date">End Date:</label>
+        <input type="date" name="end_date" id="end_date" required>
+        
+        <br>
+        
+        <input type="submit" value="Search">
+    </form>
+
+</body>
+</html>
+* Save and exit
+* Add PHP script to **/var/www/html** using **sudo nano search.php**
+* Add following script:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results</title>
+<style>
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+    th, td {
+        border: 1px solid black;
+        padding: 8px;
+        text-align: left;
+    }
+</style>
+</head>
+<body>
+
+    <h1>Search Results</h1>
+
+    <?php
+    // Load MySQL credentials
+    require_once '/var/www/login.php';
+
+    // Enable MySQL error reporting
+    mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
+    // Establish connection
+    $conn = new mysqli($db_hostname, $db_username, $db_password, $db_database);
+    if ($conn->connect_error) {
+        die("Connection failed: " . $conn->connect_error);
+    }
+
+    if ($_SERVER["REQUEST_METHOD"] == "POST") {
+        $search = trim($_POST['search']);
+        $start_date = $_POST['start_date'];
+        $end_date = $_POST['end_date'];
+
+        // Prepared statement to prevent SQL injection
+        $stmt = $conn->prepare("SELECT id, author, title, publisher, copyright FROM books 
+                                WHERE (author LIKE ? OR title LIKE ? OR publisher LIKE ?) 
+                                AND copyright BETWEEN ? AND ?");
+
+        // Use wildcard search
+        $search_param = "%$search%";
+        $stmt->bind_param("sssss", $search_param, $search_param, $search_param, $start_date, $end_date);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result->num_rows > 0) {
+            echo "<table>";
+            echo "<tr><th>ID</th><th>Author</th><th>Title</th><th>Publisher</th><th>Copyright</th></tr>";
+
+            while ($row = $result->fetch_assoc()) {
+                echo "<tr>";
+                echo "<td>" . htmlspecialchars($row["id"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["author"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["title"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["publisher"]) . "</td>";
+                echo "<td>" . htmlspecialchars($row["copyright"]) . "</td>";
+                echo "</tr>";
+            }
+
+            echo "</table>";
+        } else {
+            echo "<p>No results found.</p>";
+        }
+
+        $stmt->close();
+    }
+
+    $conn->close();
+    ?>
+
+    <p><a href="mylibrary.html">Return to search page</a></p>
+
+</body>
+</html>
+* Add more records to data:
+* connect to MySQL server **mysql -u opacuser -p**
+* Select database **use opacdb;**
+* Insert data.
+
+### Creating Cataloging Module: Code Documentation
+* Create new directory **cd /var/www/html** and **sudo mkdir cataloging**
+* Create new index.html file **cd cataloging** and **sudo nano index.html**
+* Add following script
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Enter Records</title>
+</head>
+<body>
+    <h1>OPAC Library Administration</h1>
+
+    <p>This is the library administration page for entering records into the OPAC.</p>
+    <p>Please do not use this page unless you are an authorized cataloger.</p>
+
+    <form action="insert.php" method="post">
+        <label for="author">Author:</label>
+        <input type="text" name="author" id="author" required><br><br>
+
+        <label for="title">Book Title:</label>
+        <input type="text" name="title" id="title" required><br><br>
+
+        <label for="publisher">Publisher:</label>
+        <input type="text" name="publisher" id="publisher" required><br><br>
+
+        <label for="copyright">Copyright:</label>
+        <input type="date" name="copyright" id="copyright" required>
+
+        <input type="submit" value="Submit">
+    </form>
+</body>
+</html>
+  
+* Now create a form for entering bibliographic data **sudo nano insert.php**
+* Add following:
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cataloging: Data Entry</title>
+</head>
+<body>
+
+<h1>Cataloging: Data Entry</h1>
+
+<?php
+
+// Load MySQL credentials
+require_once '/var/www/login.php';
+
+// Enable MySQL error reporting
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
+// Establish connection
+$conn = new mysqli($db_hostname, $db_username, $db_password, $db_database);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $author = trim($_POST["author"] ?? "");
+    $title = trim($_POST["title"] ?? "");
+    $publisher = trim($_POST["publisher"] ?? "");
+    $copyright = $_POST["copyright"] ?? "";
+
+    if ($author === "" || $title === "" || $publisher === "" || $copyright === "") {
+        echo "All fields are required.";
+    } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $copyright)) {
+        echo "Copyright date must use YYYY-MM-DD format.";
+    } else {
+        // Prepare and bind SQL statement
+        $stmt = $conn->prepare("INSERT INTO books (author, title, publisher, copyright) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("ssss", $author, $title, $publisher, $copyright);
+
+        if ($stmt->execute() === TRUE) {
+            echo "New record created successfully";
+        } else {
+            echo "Error: " . $stmt->error;
+        }
+        $stmt->close();
+    }
+} else {
+    echo "Please submit records using the cataloging form.";
+}
+
+// Close connection
+$conn->close();
+?>
+
+<p><a href='index.html'>Return to Cataloging Page</a></p>
+<p><a href='../mylibrary.html'>Return to Library Home Page</a></p>
+</body>
+</html>
+
+* Create a security system to make sure unauthorized individuals are not adding to catalog
+* Create new authentication file in **/etc/apache2** directory
+* Use **sudo htpasswd -c /etc/apache2/.htpasswd libcat** 
+* libcat will be username and LibScience our password
+* Tell Apache2 web server that we will use htpasswd to control access to module
+* **sudo nano /etc/apache2/apache2.conf**
+* Go to **<Directory /var/www/** and replace with the following
+<Directory /var/www/html/cataloging/>
+  Options Indexes FollowSymLinks
+  AllowOverride AuthConfig
+  Require all granted
+</Directory>
+
+* Change cataloging directory and create file **cd /var/www/html/cataloging** then **sudo nano .htaccess**
+* Add following:
+AuthType Basic
+AuthName "Authorization Required"
+AuthUserFile /etc/apache2/.htpasswd
+Require valid-user
+
+* Check configuration **sudo apachectl configtest**
+* Should receive **Syntax OK**
+* Restart **sudo systemctl restart apache2**
+* Check status **sudo systemctl status apache2**
+* Change group ownership of /var/www/html **sudo chown :www-data /var/www/html**
+* Set setgid bit. Any new files and directories created within the directory will inherit group ownership of parent directory 
+* **sudo find /var/www/html -type d -exec chmod g+s {} +**
+
+### Visit Modules to See if They Work
+1. http://34.55.208.21/cataloging/index.html
+2. Test PHP page: http://34.55.208.21/cataloging/insert.php
+
+## Important Details
+* Always make sure you are in the correct directory. This tripped me up because I would mistakenly create new files outside of the directory and couldn't find them. I think this hindered me because I was creating the files but wasn't getting results because it was outside of the correct directory. Then I would have to go through that process again.
+* Make sure, as well, that you are entered the HTML and PHP script accurately. I had issues with the <Directory> changes because I didn't read close enough. I changed one part of the text and not the rest. I went through all of my script twice before realizing this small detail.
+* Taking a wrong step with any of these small details can hinder the function of your system; this happened to me. 
+
+## Importance of Using Documentation 
+* When doing any of this work, it was important for me to review documentation in many forms.
+* I heavily rely on that which is provided in our textbook but I also use my own previous documentation.
+* This is especially useful when I need to remember a command from past installations.
+* For example, when trying to remember how to create the text file in the /var/www/html directory, I reviewed my own documentation as a refresher. 
+* When I review my servers at the end of the installation process, I always go to our discussion boards to compare my results to others in the class. 
+* For this assignment, that was very useful because by comparing, I realized I had an error.
+* My cataloging module was not showing the username and password requirement.
+* Viewing others' work helped me realize I had an error and subsequently solve it!
+* In terms of gaps in documentation material, I felt that when creating the files and adding the script was hard to figure out because there was not much detail in how to run that. 
+* This was a big issue I encountered. 
+* To address this, I reviewed past documentation from myself and within the textbook.
+* I also believe at some point I searched Google to help get an answer.
