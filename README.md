@@ -437,3 +437,61 @@ Require valid-user
 * This was a big issue I encountered. 
 * To address this, I reviewed past documentation from myself and within the textbook.
 * I also believe at some point I searched Google to help get an answer.
+
+# Installing WordPress 04//04/26
+
+## Check Version Requirements for PHP and MySQL
+* Need PHP version of 8.3 or higher
+* Run **php --version** : our version is 8.3.6 so we are fine
+* Need MySQL version 8.0 or greater
+* run **mysql --version** : ours is 8.0.45 so we are fine
+* can use **cat /etc/issue.net** to check our Ubuntu release : 24.04.4
+* next add additional PHP modules to let WordPress operate fully
+* run **sudo apt install php-curl php-xml php-imagick php-mbstring php-zip php-intl**
+* restart Apache2 and MySQL **sudo systemctl restart apache2** and **sudo systemctl restart mysql**
+
+## Download and Extract
+* change directory **cd /var/www/html**
+* download WordPress as zip file **sudo wget https://wordpress.org/latest.zip**
+* extract package **sudo unzip latest.zip**
+
+## Create Database and User
+* Log in to MySQL root **sudo mysql -u root**
+* create new user for WordPress **create user 'wordpress'@'localhost' identified by 'Ruthie_Brewer26!;**
+* create new database **create database wordpress;**
+* grant all privileges to new user: grant all privileges on wordpress.* to 'wordpress'@'localhost';
+* examine output **show databases** and exit **\q**
+
+## Set up wp-config.php
+* Change to wordpress directory **cd wordpress** or **cd /var/www/html/wordpress**
+* copy and rename file **sudo cp wp-config-sample.php wp-config.php**
+* edit file and add database name, user name, and password **sudo nano wp-config.php**
+* in **DB_NAME** add **wordpress**
+* **DB_USER** add **wordpress**
+* **DB_PASSWORD** add **LibScience26!**
+* change site name **sudo mv /var/www/html/wordpress /var/www/html/thefakelibrary**
+* visit WordPress site **http://34.68.229.119/wp-admin/install.php**
+
+## Install WordPress
+* Create site name **The Fake Library**
+* username: **mollss12**
+* password: **Ruthie_Brewer26!**
+* email: **molleeakers12@gmail.com**
+
+## Process Reflection
+* installing this was a very interesting process. I had the same issue as last week except way worse. 
+* last week's issue was solved in the Directory file of the apache.conf file
+* my authorizations were not correct and it was throwing errors
+* this week, i finished the whole process in the lecture notes and a Not Authorized error was showing
+* it was difficult to find the error because it was located in the file from last week
+* i think the issue lied in the Directory area.
+* there was no directory for /var/www/html or /var/www/html/thefakelibrary which was the name i changed the wordpress file to
+* i had to look up so many commands to run to find the issue.
+* i ran ones to find the permissions, who was authorized. 
+* i ran the ls -l command to see if the file was located in the right place
+* i used it also to see if the index.php and index.html files were correct which they were
+* ultimately, i had to insert new directory permissions for both /var/www/html and /var/www/html/thefakelibrary
+* the last i think solved the issue
+* this took about 2 hours to resolve and thefakelibrary isn't even the root of the web address
+
+## Designing Page
