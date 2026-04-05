@@ -495,3 +495,11 @@ Require valid-user
 * this took about 2 hours to resolve and thefakelibrary isn't even the root of the web address
 
 ## Designing Page
+* I have major issues with this.
+* the wp-admin page initially ran smoothly but as I continued to add and change the design the slower it became
+* eventually, the page stopped working 
+* i realized that the user interface was working you just had to let it load a long time and then click the x in the search bar
+* i have spent hours trying to fix the admin side and it still won't work
+* i have reviewed the plugins, updated the RAMS and memory in the wp-config.php script
+* this one has definitely got me lost because it was working fine and now it's not
+* i have decided to wait for advice on how to fix this issue before i mess something up
