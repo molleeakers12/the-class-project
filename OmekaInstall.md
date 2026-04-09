@@ -24,3 +24,8 @@
 4. dbname: omeka
 * use command to give Apache group write access **sudo chmod -R g+w **
  
+# Adding Data to Omeka 
+* go to admin site **http://35.184.202.219/omeka/admin**
+* Note: here i ran into issues with the server as it was taking me to my Wordpress sample page and showing a 404 Error. In the end, i found out that i had missed a configuration/permission step in the installation process so /omeka/admin was being denied. I used **sudo chown -R www-data:www-data /var/www/html/omeka** and refreshed the site and it was working
+* i completed the installation process for Omeka
+* I then added an edition of Jane Austen's Pride and Prejudice
